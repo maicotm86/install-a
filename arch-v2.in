@@ -1,0 +1,297 @@
+#!/bin/bash
+#
+#----------[ Script para instalação do Arch Linux ]--------------+
+#                                                                |
+#  script : arch.in                                              |
+#  author : Marcos Oliveira <binbash@linuxmail.org>              |
+#  site   : http://terminalroot.com.br/shell                     |
+#  version: 2.1                                            |
+#  date   : 07/08/2018 20:57:08                                  |
+#  uso    : ./arch.in                                            |
+#                                                                |
+#----------------------------------------------------------------+
+#
+# Copyright 2018 terminalroot <terminalroot.com.br at gmail dot com>
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+
+if [[ $1 = @(-h|--help) ]]; then
+  sed -n '/^#.*uso.*/p' ${0##*/} | tr -d '#\|'
+  exit $(( $# ? 0 : 1 ))
+fi
+
+
+tput reset
+__E=$(echo -e "\e[31;1m");__F=$(echo -e "\e[32;1m");__Y=$(echo -e "\e[33;1m");__P=$(echo -e "\e[34;1m");__C=$(echo -e "\e[36;1m");__B=$(echo -e "\e[37;1m");__O=$(echo -e "\e[m");__N=$(echo -e "\e[99;0m");
+	cat <<EOL
+
+      ┌─────────────────────────────────────────────────────────────────┐
+      │         TERMINAL ROOT INSTALLER ARCH LINUX - VERSION 2.1        │
+      ├─────────────────────────────────────────────────────────────────┤
+      │                    DUAL BOOT - ARCH E WINDOWS 7                 │
+      ├─────────────────────────────────────────────────────────────────┤
+      │                        ${__Y}AVISO IMPORTANTE${__O}                         │
+      ├─────────────────────────────────────────────────────────────────┤
+      │                                                                 │
+      │  Esse Instalador assume que você deseja instalar o Arch Linux   │
+      │  ao lado do Windows 7 que possue somente 2 partições: sda1 e    │
+      │  sda2, além de possuir um Espaço Livre pré-estabelecido         │
+      │  ,rode antes [fdisk -l] para saber sua tabela de partição       │
+      │  ,se não for esse o caso cancele essa instalção, teclando n     │
+      │                                                                 │
+      │  Para sair do instalador para utilizar outros modelos de        │
+      │  instalação que é possível configurar as partições do           │
+      │  Disco Rígido (HD).                                             │
+      │                                                                 │
+      │         DESEJA REALMENTE INICIAR A INSTALAÇÃO ? ${__Y}[S/n]${__O}:          │
+      │                                                                 │
+      └─────────────────────────────────────────────────────────────────┘
+   
+EOL
+
+setterm -cursor off
+echo -ne "\n "
+read -n 1 INSTALAR
+
+tput reset
+
+if [[ "$INSTALAR" != @(S|s) ]]; then
+	exit $?
+fi
+
+cat <<STI
+
+      ┌─────────────────────────────────────────────────────────────────┐
+      │         ${__C}TERMINAL ROOT${__O} INSTALLER ${__F}ARCH LINUX${__O} - VERSION 2.1        │
+      ├─────────────────────────────────────────────────────────────────┤
+      │                    ${__B}INSTALANDO COM DUAL BOOT${__O}                     │
+      └─────────────────────────────────────────────────────────────────┘
+
+STI
+
+_criar_particoes(){
+    
+    NOME=$(fdisk -l | sed -n 1p | grep '/dev/...' | sed 's/.*\/dev\///g' | sed 's/\:.*//g')
+    (echo F; echo q) | fdisk /dev/$NOME > /tmp/$NOME.size
+    PART=$(cat /tmp/$NOME.size | grep '^[0-9]' | awk '{print $4}' | tr -d '[a-zA-Z]')
+    RAIZ=$(echo "$PART" - 4 | bc)
+    
+    partprobe /dev/$NOME    
+    (echo n; echo e; echo; echo; echo; echo w) | fdisk /dev/$NOME
+    partprobe /dev/$NOME
+    (echo n; echo; echo "+$RAIZ""G";echo w) | fdisk /dev/$NOME
+    partprobe /dev/$NOME
+    (echo n; echo; echo "+200""M";echo w) | fdisk /dev/$NOME
+    partprobe /dev/$NOME
+    (echo n; echo; echo; echo t; echo; echo 82; echo w) | fdisk /dev/$NOME
+    partprobe /dev/$NOME
+}
+
+ctrl_c(){
+	echo
+	setterm -cursor on
+	exit $?
+}
+
+_r='\e[31;1m';_n='\e[36;1m';_w='\e[37;1m';_g='\e[32;1m'
+_y='\e[33;1m';_p='\e[35;1m';_o='\e[m';_XX='_XX'
+
+
+
+_s(){
+	for i in $(seq 1 $1); do 
+		_XX=$_XX'_XX'		
+	done
+	echo -en $_XX | sed 's/_XX/ /g'
+}
+
+_bs(){
+	for i in $(seq 1 $1); do 
+		_XX=$_XX'_XX'		
+	done
+	echo -en $_XX | sed 's/_XX/\\b/g'
+}
+
+declare -x _msg=("Configurando o teclado...."
+		 "Testando a internet......."
+		 "Checando o relógio........"
+		 "Criando as partições......"
+		 "Formatando o root........."
+		 "Formatando a swap........."
+		 "Formatando o boot........."
+		 "Ativando a swap..........."
+		 "Montando o root em /mnt..."
+		 "Criando /mnt/boot........."
+		 "Montando sdaX em boot....."
+		 "Instalando o básico......."
+		 "Gerando a /et/fstab......."
+		 "Configurando o horário...."
+		 "Definindo o idioma........"
+		 "Gerando o idioma.........."
+		 "Configurando o idioma....."
+		 "Configurando o teclado...."
+		 "Definindo o hostname......"
+		 "Definindo virtual host...."
+		 "Copiando a img do Kernel.."
+		 "Baixado o grub............"
+		 "Instalando o grub na MBR.."
+		 "Adiconando opções ao grub."
+		 "Configurando o grub......."
+		 "Instalando o dhcpcd......."
+		 "Habilitando o dhcpcd......")
+
+declare -x _cmd=("loadkeys br-abnt2"
+		 "ping -c1 www.google.com"
+		 "timedatectl set-ntp true"
+		 "_criar_particoes"
+		 "mkfs.ext4 /dev/sda5"
+		 "mkswap /dev/sda7"
+		 "mkfs.ext4 /dev/sda6"
+		 "swapon /dev/sda7"
+		 "mount /dev/sda5 /mnt"
+		 "mkdir /mnt/boot"
+		 "mount /dev/sda6 /mnt/boot"
+		 "pacstrap /mnt base"
+		 "genfstab -U /mnt >> /mnt/etc/fstab"
+		 "ln -sf /usr/share/zoneinfo/Brazil/East /etc/localtime"
+		 "echo 'pt_BR.UTF-8 UTF-8' >> /etc/locale.gen"
+		 "echo 'LANG=pt_BR.UTF-8' > /etc/locale.conf"
+		 "locale-gen"
+		 "echo 'KEYMAP=br-abnt2' > /etc/vconsole.conf"
+		 "echo 'arch' > /etc/hostname"
+		 "echo -e '127.0.0.1\tlocalhost\n::1\tlocalhost\n127.0.1.1\tarch.linux\tarch\n' > /etc/hosts"
+		 "mkinitcpio -p linux"
+		 "pacman -S grub --noconfirm"
+		 "grub-install --target=i386-pc --recheck /dev/sda"
+		 "pacman -S os-prober --noconfirm"
+		 "grub-mkconfig -o /boot/grub/grub.cfg"
+		 "pacman -S dhcpcd --noconfirm"
+		 "systemctl enable dhcpcd")
+
+_throbber_do(){
+	setterm -cursor off
+	echo -ne "  "
+	z=1
+	trap ctrl_c SIGINT SIGTERM
+	while [[ "$z" -lt "100" ]]; do	
+		if [[ "$z" -lt "50" ]]; then
+		    echo -ne "\b\e[30;1m█\e[m█"
+		    if [[ "$z" -lt "30" ]]; then
+		        sleep 0.01
+		    else
+		        sleep 0.03
+		    fi
+		else
+		    echo -ne " \b█\e[30;1m█\e[m\b\b\b"
+		    if [[ "$z" -lt "70" ]]; then
+		        sleep 0.01
+		    else
+		        sleep 0.03
+		    fi
+		fi    
+		let z=z+1
+		if [[ "$z" -gt "98" ]]; then
+		    z=1
+		fi
+		echo -en "\c"
+	done 2>/dev/null
+}
+
+_run(){
+	{
+		while true
+		do
+			trap "exit" SIGUSR1	
+			_throbber_do	
+		done; } &
+		pid=$!
+}
+
+_instalador(){
+	
+	for i in {0..12}; do	
+		
+		# change from 4 to 8 + 10 + swapoff at the end		
+		echo -en " $_y→$_o " ; echo -en ${_msg[$i]}
+		_run		
+		
+		sleep 2 ; eval ${_cmd[$i]} >> /tmp/$i.log 2>/tmp/$i.log	
+	
+		if [[ "$?" == "0" ]]; then
+			echo -en $(_s 100)
+			echo -en "$(_bs 100)"" $_g✔$_o ${_msg[$i]}$(_s 50 | sed 's/ /./g')$_o$_g[$_n""ok$_g]$_o$(_s 50)"
+			echo
+			kill -USR1 $pid
+			wait $pid
+			trap EXIT
+		else
+			echo -en $(_s 100)
+			echo -en "$(_bs 100)"" $_r✖$_o ${_msg[$i]}$(_s 50 | sed 's/ /./g')$_o$_r[erro]$_o$(_s 50)"
+			echo -e "\nVerifique o 'log' em /tmp/$i.log"
+			setterm -cursor on
+			kill -USR1 $pid
+			wait $pid
+			trap EXIT
+			exit $?
+		fi
+	
+	done
+}
+
+_instalador
+
+
+sed -n '/^ctrl_c/,/^_instalador$/p' install.sh > /mnt/continue-install.sh
+sed -i 's/{0\.\.12}/{13..26}/' /mnt/continue-install.sh
+wget terminalroot.com.br/os.in -O /mnt/os.in 2>/dev/null
+chmod +x /mnt/os.in
+echo "source os.in" >> /mnt/continue-install.sh
+echo -e "hwclock -w\nexit" >> /mnt/continue-install.sh
+sed -i '1i\#\!\/bin\/bash\n' /mnt/continue-install.sh
+chmod +x /mnt/continue-install.sh
+arch-chroot /mnt ./continue-install.sh
+
+_eoi(){
+trap EXIT
+__E=$(echo -e "\e[31;1m");__F=$(echo -e "\e[32;1m");__Y=$(echo -e "\e[33;1m");__P=$(echo -e "\e[34;1m");__C=$(echo -e "\e[36;1m");__B=$(echo -e "\e[37;1m");__O=$(echo -e "\e[m");__N=$(echo -e "\e[99;0m");
+cat <<EOI
+
+      ┌─────────────────────────────────────────────────────────────────┐
+      │                 ${__F}INSTALAÇÃO COMPLETADA COM SUCESSO${__O}               │
+      ├─────────────────────────────────────────────────────────────────┤
+      │     ${__B}Retire o disco/iso do drive de CD/DVD e aperte [ ENTER ]${__O}    │
+      └─────────────────────────────────────────────────────────────────┘
+	
+EOI
+
+#rm /mnt/continue-install.sh
+#rm /mnt/os.in
+umount -Rl /mnt
+swapoff /dev/sda7
+setterm -cursor on
+read -n 1 ENTER
+reboot
+exit $?
+}
+_eoi
