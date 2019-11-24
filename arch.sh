@@ -26,7 +26,7 @@
 #passwd maico
 #sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
 # exit
-sudo pacman -S archlinux-keyring xorg-server xorg-apps xorg-xinit xf86-input-libinput xf86-input-mouse xf86-input-synaptics xf86-input-keyboard xf86-video-intel pulseaudio pulseaudio-alsa i3-gaps i3lock i3blocks dmenu ntfs-3g p7zip unzip unrar xfce4-settings termite compton volumeicon shellcheck feh nemo nemo-fileroller nemo-preview xfce4-appfinder xfce4-power-manager lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings python-pip --noconfirm 
+sudo pacman -S archlinux-keyring xorg-server xorg-apps xorg-xinit xf86-input-libinput xf86-input-mouse xf86-input-synaptics xf86-input-keyboard xf86-video-intel pulseaudio pulseaudio-alsa i3-gaps i3lock i3blocks dmenu ntfs-3g p7zip unzip unrar xfce4-settings termite compton volumeicon shellcheck feh nemo nemo-fileroller nemo-preview xfce4-appfinder xfce4-power-manager xfce4-notifyd vulkan-intel xfwm4 xfwm4-themes terminator  lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings python-pip --noconfirm 
 
 localectl set-keymap br-abnt2
 localectl set-x11-keymap br
