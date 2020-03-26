@@ -1,3 +1,8 @@
+#!/bin/sh
+
+## format
+#dd if=/dev/zero of=/dev/sd?? bs=512 count=1 conv=notrunc status="progress"
+
 # pacstrap
 #pacstrap -i /mnt base base-devel linux-lts linux-lts-headers linux-firmware bash-completion vim git curl wget
 #genfstab -U /mnt >> /mnt/etc/fstab
